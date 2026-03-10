@@ -1,0 +1,41 @@
+{
+  "name": "tmux-ai",
+  "version": "1.0.0",
+  "description": "Auto-configure tmux for managing multiple AI CLIs (Claude, GPT, Aider, etc.)",
+  "type": "module",
+  "bin": {
+    "tmux-ai": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "npx tsx src/cli.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "tmux",
+    "ai",
+    "cli",
+    "terminal",
+    "claude",
+    "gpt",
+    "aider",
+    "productivity"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nicepkg/tmux-ai"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "tsx": "^4.0.0"
+  }
+}
