@@ -515,42 +515,89 @@ echo "\${HEAD}/.../\${TAIL}"
 
 // ─── Write AI session launcher script ──────────────────────
 function writeSessionScript(): void {
-  const scriptPath = join(LOCAL_BIN, "tmux-ai-session");
+  const scriptPath = join(LOCAL_BIN, "tai");
 
   if (!existsSync(LOCAL_BIN)) {
     mkdirSync(LOCAL_BIN, { recursive: true });
   }
 
   const script = `#!/usr/bin/env bash
-# tmux-ai-session: Launch a pre-configured AI workspace session
-SESSION="ai-workspace"
+# tai: Launch a pre-configured AI workspace session
+# Usage: tai [--windows win1,win2,...] [--session NAME]
+#
+# Options:
+#   --windows   Comma-separated list of windows to create (default: main)
+#               Available: main, claude, gpt, monitor, or any custom name
+#   --session   Session name (default: ai-workspace)
+#
+# Examples:
+#   tai                          # just "main" window
+#   tai --windows main,claude    # main + claude
+#   tai --windows main,claude,gpt,monitor  # all windows
 
-if tmux has-session -t "$SESSION" 2>/dev/null; then
-  echo "Session '$SESSION' already exists. Attaching..."
-  tmux attach-session -t "$SESSION"
+SESSION="ai-workspace"
+WINDOWS="main"
+
+while [[ \$# -gt 0 ]]; do
+  case "\$1" in
+    --windows) WINDOWS="\$2"; shift 2 ;;
+    --session) SESSION="\$2"; shift 2 ;;
+    *) echo "Unknown option: \$1"; exit 1 ;;
+  esac
+done
+
+if tmux has-session -t "\$SESSION" 2>/dev/null; then
+  echo "Session '\$SESSION' already exists. Attaching..."
+  tmux attach-session -t "\$SESSION"
   exit 0
 fi
 
-tmux new-session -d -s "$SESSION" -n "main"
-tmux send-keys -t "$SESSION:main" "echo '🤖 AI Workspace ready'" Enter
+IFS=',' read -ra WIN_LIST <<< "\$WINDOWS"
+FIRST="\${WIN_LIST[0]}"
 
-tmux new-window -t "$SESSION" -n "claude"
-tmux send-keys -t "$SESSION:claude" "# claude / anthropic cli here" Enter
+# Create session with first window
+tmux new-session -d -s "\$SESSION" -n "\$FIRST"
 
-tmux new-window -t "$SESSION" -n "gpt"
-tmux send-keys -t "$SESSION:gpt" "# openai / other ai cli here" Enter
+# Set up each window
+setup_window() {
+  local name="\$1"
+  case "\$name" in
+    main)
+      tmux send-keys -t "\$SESSION:\$name" "echo '🤖 AI Workspace ready'" Enter
+      ;;
+    claude)
+      tmux send-keys -t "\$SESSION:\$name" "# claude / anthropic cli here" Enter
+      ;;
+    gpt)
+      tmux send-keys -t "\$SESSION:\$name" "# openai / other ai cli here" Enter
+      ;;
+    monitor)
+      tmux split-window -h -t "\$SESSION:\$name"
+      if command -v htop &>/dev/null; then
+        tmux send-keys -t "\$SESSION:\$name.1" "htop" Enter
+      else
+        tmux send-keys -t "\$SESSION:\$name.1" "# htop not installed" Enter
+      fi
+      tmux send-keys -t "\$SESSION:\$name.2" "# notes / logs" Enter
+      ;;
+    *)
+      tmux send-keys -t "\$SESSION:\$name" "# \$name" Enter
+      ;;
+  esac
+}
 
-tmux new-window -t "$SESSION" -n "monitor"
-tmux split-window -h -t "$SESSION:monitor"
-if command -v htop &>/dev/null; then
-  tmux send-keys -t "$SESSION:monitor.1" "htop" Enter
-else
-  tmux send-keys -t "$SESSION:monitor.1" "# htop not installed" Enter
-fi
-tmux send-keys -t "$SESSION:monitor.2" "# notes / logs" Enter
+# Setup first window
+setup_window "\$FIRST"
 
-tmux select-window -t "$SESSION:main"
-tmux attach-session -t "$SESSION"
+# Create and setup remaining windows
+for ((i=1; i<\${#WIN_LIST[@]}; i++)); do
+  name="\${WIN_LIST[\$i]}"
+  tmux new-window -t "\$SESSION" -n "\$name"
+  setup_window "\$name"
+done
+
+tmux select-window -t "\$SESSION:\$FIRST"
+tmux attach-session -t "\$SESSION"
 `;
 
   writeFileSync(scriptPath, script, "utf-8");
@@ -571,7 +618,7 @@ tmux attach-session -t "$SESSION"
         "utf-8"
       );
       success(`Added ~/.local/bin to PATH in ${shellRc}`);
-      warn("Run 'source " + shellRc + "' to use 'tmux-ai-session' command");
+      warn("Run 'source " + shellRc + "' to use 'tai' command");
     }
   }
 }
@@ -618,7 +665,9 @@ ${cyan("━━━━━━━━━━━━━━━━━━━━━━━━
   Prefix key : ${bold("Ctrl-a")}
 
   ${bold("Sessions")}
-    tmux-ai-session  launch AI workspace
+    tai                launch AI workspace (1 window)
+    tai --windows main,claude,gpt,monitor
+                     launch with specified windows
     Prefix + d       detach from session
     tmux ls          list sessions
     tmux a -t NAME   attach session
@@ -710,7 +759,7 @@ async function main(): Promise<void> {
   printCheatsheet();
 
   success(
-    `All done! Run ${colors.bold("tmux-ai-session")} to launch your AI workspace.`
+    `All done! Run ${colors.bold("tai")} to launch your AI workspace.`
   );
 }
 

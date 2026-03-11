@@ -48,11 +48,27 @@ npx tmux-ai
 npm i -g tmux-ai
 tmux-ai
 
-# Launch AI workspace
-tmux-ai-session
+# Launch AI workspace (default: only "main" window)
+tai
+
+# Launch with specific windows
+tai --windows main,claude,gpt,monitor
+
+# Custom session name
+tai --session my-project --windows main,claude
 ```
 
-`tmux-ai-session` creates a pre-configured workspace for you:
+`tai` creates a pre-configured workspace for you. Available windows:
+
+| Window | Description |
+|--------|-------------|
+| `main` | Daily shell (default) |
+| `claude` | For Claude CLI |
+| `gpt` | For GPT / Gemini |
+| `monitor` | htop + logs (split pane) |
+| Any name | Custom empty window |
+
+Example with all windows:
 
 ```
 ai-workspace
@@ -257,7 +273,7 @@ In short:
 1. **Install tmux** (brew on macOS, system package manager on Linux)
 2. **Install TPM** (plugin manager)
 3. **Write `~/.tmux.conf`** (keybindings, colors, plugin list)
-4. **Write `tmux-ai-session` script** (one-key launch preset workspace)
+4. **Write `tai` script** (launch AI workspace with configurable windows)
 5. **Auto-install plugins**
 
 Don't worry about breaking existing config—if you have an existing `.tmux.conf`, the script backs it up first.
@@ -297,7 +313,7 @@ Don't worry about breaking existing config—if you have an existing `.tmux.conf
 | `Prefix + s` | Built-in session list (arrow keys to select, Enter to switch) |
 | `Prefix + S` | Session manager (sessionx, more powerful) |
 | `Prefix + (` / `)` | Switch to previous / next session |
-| `tmux-ai-session` | Launch AI workspace |
+| `tai` | Launch AI workspace |
 | `tmux ls` | List all sessions |
 | `tmux kill-session -t NAME` | Close a session (server keeps running) |
 
@@ -324,7 +340,7 @@ Don't worry about breaking existing config—if you have an existing `.tmux.conf
 
 ```bash
 npx tmux-ai
-tmux-ai-session
+tai
 ```
 
 In 5 minutes you'll have a terminal environment dedicated to AI workflows.

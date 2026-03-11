@@ -46,11 +46,27 @@ npx tmux-ai
 npm i -g tmux-ai
 tmux-ai
 
-# 启动 AI 工作区
-tmux-ai-session
+# 启动 AI 工作区（默认只创建 main 窗口）
+tai
+
+# 指定要创建的窗口
+tai --windows main,claude,gpt,monitor
+
+# 自定义 session 名称
+tai --session my-project --windows main,claude
 ```
 
-`tmux-ai-session` 会帮你创建一个预设好的工作区：
+`tai` 会帮你创建一个预设好的工作区。可用窗口：
+
+| 窗口 | 说明 |
+|------|------|
+| `main` | 日常 shell（默认） |
+| `claude` | 放 Claude CLI |
+| `gpt` | 放 GPT / Gemini |
+| `monitor` | htop + 日志（分屏） |
+| 任意名称 | 自定义空窗口 |
+
+指定全部窗口的效果：
 
 ```
 ai-workspace
@@ -255,7 +271,7 @@ Prefix + Ctrl-r   → 恢复布局
 1. **装 tmux**（macOS 用 brew，Linux 用系统包管理器）
 2. **装 TPM**（插件管理器）
 3. **写 `~/.tmux.conf`**（快捷键、配色、插件列表）
-4. **写 `tmux-ai-session` 脚本**（一键启动预设工作区）
+4. **写 `tai` 脚本**（启动 AI 工作区，支持自定义窗口）
 5. **自动装插件**
 
 不用担心搞坏现有配置——如果你之前有 `.tmux.conf`，脚本会先备份。
@@ -295,7 +311,7 @@ Prefix + Ctrl-r   → 恢复布局
 | `Prefix + s` | 内置 Session 列表（上下选择，回车切换）|
 | `Prefix + S` | Session 管理器（sessionx，更强大）|
 | `Prefix + (` / `)` | 切换到上一个 / 下一个 Session |
-| `tmux-ai-session` | 启动 AI 工作区 |
+| `tai` | 启动 AI 工作区 |
 | `tmux ls` | 列出所有 Session |
 | `tmux kill-session -t NAME` | 关闭指定 Session（server 继续运行）|
 
@@ -322,7 +338,7 @@ Prefix + Ctrl-r   → 恢复布局
 
 ```bash
 npx tmux-ai
-tmux-ai-session
+tai
 ```
 
 五分钟后你就有了一个 AI 专用的终端环境。
