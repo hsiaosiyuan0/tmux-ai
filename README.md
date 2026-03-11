@@ -140,9 +140,24 @@ This is why you can:
 - SSH to a server, run a long task, disconnect SSH, attach tomorrow to check
 - Restart computer (with tmux-resurrect plugin), previous window layout can still be restored
 
+> **Tip**: `Prefix + d` only detaches—both the session and server keep running. If you want to close a specific session while keeping the tmux server alive (other sessions unaffected), first run `tmux ls` to see all sessions, then use `tmux kill-session -t SESSION_NAME` to close the one you want.
+
 ---
 
 ## Daily Usage Tips
+
+### Switching Between Sessions
+
+No need to detach from the current session—you can switch directly:
+
+```
+Prefix + s    → Pop up session list, select and Enter to switch
+Prefix + S    → sessionx manager (fuzzy search, preview)
+Prefix + (    → Previous session
+Prefix + )    → Next session
+```
+
+For example, if you have `ai-workspace` and `project-b` sessions, press `Prefix + s` to switch between them. Each session's windows and panes stay exactly as they were.
 
 ### Quick Window Switching
 
@@ -279,9 +294,12 @@ Don't worry about breaking existing config—if you have an existing `.tmux.conf
 | Keys | Function |
 |------|----------|
 | `Prefix + d` | Detach (keeps running in background) |
-| `Prefix + S` | Session manager |
+| `Prefix + s` | Built-in session list (arrow keys to select, Enter to switch) |
+| `Prefix + S` | Session manager (sessionx, more powerful) |
+| `Prefix + (` / `)` | Switch to previous / next session |
 | `tmux-ai-session` | Launch AI workspace |
 | `tmux ls` | List all sessions |
+| `tmux kill-session -t NAME` | Close a session (server keeps running) |
 
 **Copy Mode**
 
@@ -310,5 +328,29 @@ tmux-ai-session
 ```
 
 In 5 minutes you'll have a terminal environment dedicated to AI workflows.
+
+## Terminal Compatibility Troubleshooting
+
+If you experience scrollback issues, broken colors, or clipboard problems with terminals like Ghostty, Kitty, etc., check that `~/.tmux.conf` contains these two lines (already included by tmux-ai):
+
+```bash
+set -g default-terminal "screen-256color"
+set -ag terminal-overrides ",xterm-256color:RGB"
+```
+
+What these do:
+- The first line tells tmux to use 256-color terminal mode
+- The second line enables true color (24-bit RGB) so color schemes render correctly
+
+If issues persist, try replacing `screen-256color` with `tmux-256color`:
+
+```bash
+set -g default-terminal "tmux-256color"
+set -ag terminal-overrides ",xterm-256color:RGB"
+```
+
+> **Terminal recommendations**: On macOS, iTerm2 has the best tmux compatibility (supports `tmux -CC` native integration). WezTerm is also solid and cross-platform. Ghostty and Kitty generally work well but may occasionally need the above tweaks.
+
+---
 
 Questions? Open an Issue.

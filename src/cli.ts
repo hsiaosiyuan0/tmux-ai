@@ -174,7 +174,16 @@ async function checkOptionalDeps(os: "macos" | "linux"): Promise<{
     warn(`Optional dependencies not found: ${missingOptional.join(", ")}`);
     warn("Some popup features (Prefix+g/f/m) may not work.");
     if (os === "macos") {
-      warn(`Install with: brew install ${missingOptional.join(" ")}`);
+      const shouldInstall = await askYesNo(
+        `Install optional dependencies (${missingOptional.join(", ")}) now?`
+      );
+      if (shouldInstall) {
+        execLive(`brew install ${missingOptional.join(" ")}`);
+        success("Optional dependencies installed");
+        missingOptional.length = 0;
+      }
+    } else {
+      warn(`Install with your package manager: ${missingOptional.join(" ")}`);
     }
   }
 
@@ -387,7 +396,7 @@ bind C new-window -n "claude" -c "#{pane_current_path}"
 bind G new-window -n "gpt" -c "#{pane_current_path}"
 
 # ── Pane naming ─────────────────────────────────────────────
-bind P command-prompt -p "Pane name:" "run-shell 'printf \\"\\\\\\\\033]2;%%\\\\\\\\033\\\\\\\\\\\\\\\\" > /dev/tty'"
+bind P command-prompt -p "Pane name:" "select-pane -T '%%'"
 
 # ── tmux-fzf config ─────────────────────────────────────────
 set -g @fzf-url-fzf-options '-p 60%,30% --prompt="   " --border-label=" Open URL "'
@@ -406,29 +415,37 @@ set -g @sessionx-preview-ratio '60%'
 set -g @sessionx-filter-current 'false'
 set -g @sessionx-prompt ' '
 
-# ── Status bar (catppuccin/tmux) ─────────────────────────────
+# ── Status bar (catppuccin/tmux v2) ──────────────────────────
 set -g status-position top
 set -g @catppuccin_flavor 'mocha'
-set -g @catppuccin_status_modules_right "application session date_time"
-set -g @catppuccin_status_modules_left ""
-set -g @catppuccin_date_time_text "%H:%M  %Y-%m-%d"
 set -g @catppuccin_window_status_style "rounded"
-set -g @catppuccin_window_default_text "#W"
-set -g @catppuccin_window_current_text "#W#{?window_zoomed_flag, 🔍,}"
-set -g @catppuccin_window_current_color "#89b4fa"
-set -g @catppuccin_application_text "#{?pane_title,#{pane_title},#{pane_current_command}}"
+
+# Window text: force immediate evaluation with #W (window name)
+# Use automatic-rename to ensure window name updates properly
+set -g automatic-rename on
+set -g automatic-rename-format "#{b:pane_current_path}"
+set -g @catppuccin_window_text " #W"
+set -g @catppuccin_window_current_text " #W#{?window_zoomed_flag, 🔍,}"
+
+# Load catppuccin (must be before status-right)
+run ~/.tmux/plugins/tmux/catppuccin.tmux
+
+# Status line modules (using catppuccin built-in modules for consistent style)
+set -g status-right-length 100
+set -g status-left ""
+set -g @catppuccin_directory_text " #(~/.local/bin/tmux-truncate-path)"
+set -g status-right "#{E:@catppuccin_status_directory}"
+set -ag status-right "#{E:@catppuccin_status_session}"
+set -ag status-right "#{E:@catppuccin_status_date_time}"
 
 # ── Popup 浮动窗口 (tmux 3.2+) ──────────────────────────────
 bind g display-popup -E -w 90% -h 90% "command -v lazygit >/dev/null && lazygit || { echo 'lazygit not installed. Run: brew install lazygit'; read; }"
 bind f display-popup -E -w 80% -h 80% "command -v fzf >/dev/null && fzf --preview 'command -v bat >/dev/null && bat --color=always --style=numbers {} || cat {}' || { echo 'fzf not installed. Run: brew install fzf'; read; }"
 bind m display-popup -E -w 80% -h 80% "command -v htop >/dev/null && htop || top"
-bind '\\\\'  display-popup -E -w 80% -h 80% "$SHELL"
+bind \\\\ display-popup -E -w 80% -h 80% "$SHELL"
 
 # ── Pane border ─────────────────────────────────────────────
-set -g pane-border-style "fg=#313244"
-set -g pane-active-border-style "fg=#89b4fa"
-set -g pane-border-status top
-set -g pane-border-format " #{?pane_title,#{pane_title},pane #P} "
+# (catppuccin handles pane border styling now)
 
 # ── Plugins (TPM) ───────────────────────────────────────────
 set -g @plugin 'tmux-plugins/tpm'
@@ -451,6 +468,49 @@ set -g @resurrect-capture-pane-contents 'on'
 # Initialize TPM (keep this at the very bottom)
 run '~/.tmux/plugins/tpm/tpm'
 `;
+}
+
+// ─── Write path truncate script ────────────────────────────
+function writeTruncateScript(): void {
+  const scriptPath = join(LOCAL_BIN, "tmux-truncate-path");
+
+  if (!existsSync(LOCAL_BIN)) {
+    mkdirSync(LOCAL_BIN, { recursive: true });
+  }
+
+  // Script to truncate path keeping head and tail segments
+  // Example: ~/dev/some/very/deep/nested/path/to/project → ~/dev/.../to/project
+  const script = `#!/usr/bin/env bash
+# tmux-truncate-path: Truncate path keeping first 2 and last 2 segments
+# Usage: tmux-truncate-path [path]
+# If path not provided, uses current pane's path
+
+PATH_INPUT="\${1:-\$(tmux display-message -p '#{pane_current_path}')}"
+
+# Replace $HOME with ~
+PATH_INPUT="\${PATH_INPUT/#$HOME/~}"
+
+# Split path into array by /
+IFS='/' read -ra PARTS <<< "$PATH_INPUT"
+COUNT=\${#PARTS[@]}
+
+# If 5 or fewer segments, no need to truncate (head 2 + tail 2 + possible empty = 5)
+if [ "$COUNT" -le 5 ]; then
+  echo "$PATH_INPUT"
+  exit 0
+fi
+
+# Keep first 2 and last 2 segments
+# PARTS[0] is empty if path starts with / or ~
+HEAD="\${PARTS[0]}/\${PARTS[1]}/\${PARTS[2]}"
+TAIL="\${PARTS[$COUNT-2]}/\${PARTS[$COUNT-1]}"
+
+echo "\${HEAD}/.../\${TAIL}"
+`;
+
+  writeFileSync(scriptPath, script, "utf-8");
+  chmodSync(scriptPath, 0o755);
+  success(`Path truncate script written to ${scriptPath}`);
 }
 
 // ─── Write AI session launcher script ──────────────────────
@@ -644,6 +704,7 @@ async function main(): Promise<void> {
   await checkOptionalDeps(os);
   backupConfig();
   writeConfig();
+  writeTruncateScript();
   writeSessionScript();
   await installPlugins();
   printCheatsheet();
