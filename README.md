@@ -247,6 +247,8 @@ Some tools you only glance at occasionally, not worth a dedicated Window. Use po
 
 Popups are floating, won't disrupt your current window layout.
 
+> **Tip**: In any fzf popup (including `Prefix + F` and `Prefix + f`), press `Ctrl-p` to copy the file path to the system clipboard, and `Ctrl-o` to open the file in your editor.
+
 ---
 
 ## Plugins
@@ -332,6 +334,32 @@ Don't worry about breaking existing config—if you have an existing `.tmux.conf
 | `Prefix + Ctrl-s` | Save layout |
 | `Prefix + Ctrl-r` | Restore layout |
 | `Prefix + I` | Install plugins |
+
+---
+
+## Uninstall
+
+To uninstall neovim and its plugins/config installed by tmux-ai:
+
+```bash
+npx tmux-ai --uninstall
+```
+
+This will interactively prompt you to remove:
+
+1. **Neovim config** (`~/.config/nvim`)
+2. **Neovim plugins & data** (`~/.local/share/nvim`)
+3. **Neovim state** (`~/.local/state/nvim`)
+4. **Neovim cache** (`~/.cache/nvim`)
+5. **Neovim binary** (via brew/apt/yum/pacman)
+
+Each step requires confirmation — nothing is deleted without your approval.
+
+To restore a previous tmux config backup:
+
+```bash
+npx tmux-ai --restore
+```
 
 ---
 

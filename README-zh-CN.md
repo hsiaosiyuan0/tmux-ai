@@ -245,6 +245,8 @@ Prefix + Ctrl-r   → 恢复布局
 
 弹窗是浮动的，不会打乱你当前的窗口布局。
 
+> **提示**：在任何 fzf 弹窗中（包括 `Prefix + F` 和 `Prefix + f`），按 `Ctrl-p` 可以将文件路径复制到系统剪贴板，按 `Ctrl-o` 可以用编辑器打开文件。
+
 ---
 
 ## 插件
@@ -330,6 +332,32 @@ Prefix + Ctrl-r   → 恢复布局
 | `Prefix + Ctrl-s` | 保存布局 |
 | `Prefix + Ctrl-r` | 恢复布局 |
 | `Prefix + I` | 安装插件 |
+
+---
+
+## 卸载
+
+卸载 tmux-ai 安装的 neovim 及其插件/配置：
+
+```bash
+npx tmux-ai --uninstall
+```
+
+会逐项交互确认是否删除：
+
+1. **Neovim 配置** (`~/.config/nvim`)
+2. **Neovim 插件与数据** (`~/.local/share/nvim`)
+3. **Neovim 状态** (`~/.local/state/nvim`)
+4. **Neovim 缓存** (`~/.cache/nvim`)
+5. **Neovim 本身** (通过 brew/apt/yum/pacman 卸载)
+
+每一步都会确认，不会误删任何内容。
+
+恢复之前备份的 tmux 配置：
+
+```bash
+npx tmux-ai --restore
+```
 
 ---
 

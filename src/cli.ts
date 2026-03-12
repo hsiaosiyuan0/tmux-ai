@@ -14,6 +14,7 @@ import {
   readFileSync,
   readdirSync,
   statSync,
+  rmSync,
 } from "fs";
 import { homedir, platform } from "os";
 import { join } from "path";
@@ -166,6 +167,7 @@ async function checkOptionalDeps(os: "macos" | "linux"): Promise<{
   }
 
   // Optional but recommended
+  if (!commandExists("nvim")) missingOptional.push("neovim");
   if (!commandExists("lazygit")) missingOptional.push("lazygit");
   if (!commandExists("bat")) missingOptional.push("bat");
   if (!commandExists("htop")) missingOptional.push("htop");
@@ -200,6 +202,153 @@ async function checkOptionalDeps(os: "macos" | "linux"): Promise<{
   }
 
   return { missingCritical, missingOptional };
+}
+
+// ─── Setup Neovim config ───────────────────────────────────
+async function setupNeovim(): Promise<void> {
+  if (!commandExists("nvim")) {
+    return;
+  }
+
+  const nvimConfigDir = join(HOME, ".config/nvim");
+  const nvimInitLua = join(nvimConfigDir, "init.lua");
+
+  if (existsSync(nvimInitLua)) {
+    info("Neovim config already exists, skipping setup");
+    return;
+  }
+
+  const shouldSetup = await askYesNo(
+    "Neovim detected. Set up plugins (treesitter, LSP for Go/TypeScript)?"
+  );
+  if (!shouldSetup) {
+    return;
+  }
+
+  if (!existsSync(nvimConfigDir)) {
+    mkdirSync(nvimConfigDir, { recursive: true });
+  }
+
+  const initLua = `-- ============================================================
+-- tmux-ai neovim config
+-- Plugins: lazy.nvim, treesitter, LSP (Go, TypeScript)
+-- ============================================================
+
+-- Bootstrap lazy.nvim
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not vim.loop.fs_stat(lazypath) then
+  vim.fn.system({
+    "git", "clone", "--filter=blob:none",
+    "https://github.com/folke/lazy.nvim.git",
+    "--branch=stable", lazypath,
+  })
+end
+vim.opt.rtp:prepend(lazypath)
+
+-- Basic settings
+vim.g.mapleader = " "
+vim.opt.number = true
+vim.opt.relativenumber = true
+vim.opt.tabstop = 2
+vim.opt.shiftwidth = 2
+vim.opt.expandtab = true
+vim.opt.signcolumn = "yes"
+vim.opt.termguicolors = true
+
+-- Plugins
+require("lazy").setup({
+  -- Syntax highlighting via treesitter
+  {
+    "nvim-treesitter/nvim-treesitter",
+    build = ":TSUpdate",
+    opts = {
+      ensure_installed = {
+        "go", "typescript", "tsx", "javascript",
+        "lua", "vim", "vimdoc", "json", "yaml",
+        "html", "css", "bash", "markdown", "markdown_inline",
+      },
+      highlight = { enable = true },
+      indent = { enable = true },
+    },
+  },
+
+  -- LSP: mason for auto-installing servers + lspconfig
+  {
+    "williamboman/mason.nvim",
+    config = function()
+      require("mason").setup()
+    end,
+  },
+  {
+    "williamboman/mason-lspconfig.nvim",
+    dependencies = { "williamboman/mason.nvim", "neovim/nvim-lspconfig" },
+    config = function()
+      require("mason-lspconfig").setup({
+        ensure_installed = { "gopls", "ts_ls" },
+        handlers = {
+          function(server_name)
+            require("lspconfig")[server_name].setup({})
+          end,
+        },
+      })
+    end,
+  },
+
+  -- Autocompletion
+  {
+    "hrsh7th/nvim-cmp",
+    dependencies = {
+      "hrsh7th/cmp-nvim-lsp",
+      "hrsh7th/cmp-buffer",
+      "hrsh7th/cmp-path",
+    },
+    config = function()
+      local cmp = require("cmp")
+      cmp.setup({
+        sources = cmp.config.sources({
+          { name = "nvim_lsp" },
+          { name = "buffer" },
+          { name = "path" },
+        }),
+        mapping = cmp.mapping.preset.insert({
+          ["<C-Space>"] = cmp.mapping.complete(),
+          ["<CR>"] = cmp.mapping.confirm({ select = true }),
+          ["<C-n>"] = cmp.mapping.select_next_item(),
+          ["<C-p>"] = cmp.mapping.select_prev_item(),
+        }),
+      })
+    end,
+  },
+})
+
+-- LSP keybindings (set on attach)
+vim.api.nvim_create_autocmd("LspAttach", {
+  callback = function(args)
+    local opts = { buffer = args.buf }
+    vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
+    vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
+    vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
+    vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
+    vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)
+    vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, opts)
+    vim.keymap.set("n", "]d", vim.diagnostic.goto_next, opts)
+  end,
+})
+`;
+
+  writeFileSync(nvimInitLua, initLua, "utf-8");
+  success(`Neovim config written to ${nvimInitLua}`);
+
+  // Run nvim headless to bootstrap lazy.nvim and install plugins
+  info("Installing Neovim plugins (this may take a moment)...");
+  const result = execLive(
+    'nvim --headless "+Lazy! sync" +qa 2>&1'
+  );
+  if (result) {
+    success("Neovim plugins installed (treesitter, LSP for Go & TypeScript)");
+  } else {
+    warn("Neovim plugin install may not have completed. Open nvim to finish setup.");
+  }
 }
 
 // ─── Ask yes/no ────────────────────────────────────────────
@@ -405,6 +554,7 @@ set -g @fzf-url-fzf-options '-p 60%,30% --prompt="   " --border-label=" Open URL
 set -g @fzf-url-history-limit '2000'
 set-environment -g TMUX_FZF_LAUNCH_KEY "F"
 set-environment -g TMUX_FZF_ORDER "window|pane|command|keybinding"
+set-environment -g TMUX_FZF_OPTIONS "-p -w 62% -h 38% --bind='ctrl-p:execute-silent(echo -n {} | (command -v pbcopy >/dev/null && pbcopy || xclip -selection clipboard 2>/dev/null || xsel --clipboard 2>/dev/null))+abort'"
 
 # ── tmux-sessionx config ─────────────────────────────────────
 set -g @sessionx-bind 'S'
@@ -442,7 +592,7 @@ set -ag status-right "#{E:@catppuccin_status_date_time}"
 
 # ── Popup 浮动窗口 (tmux 3.2+) ──────────────────────────────
 bind g display-popup -E -w 90% -h 90% "command -v lazygit >/dev/null && lazygit || { echo 'lazygit not installed. Run: brew install lazygit'; read; }"
-bind f display-popup -E -w 80% -h 80% "command -v fzf >/dev/null && fzf --preview 'command -v bat >/dev/null && bat --color=always --style=numbers {} || cat {}' || { echo 'fzf not installed. Run: brew install fzf'; read; }"
+bind f display-popup -E -w 80% -h 80% "if command -v fzf >/dev/null; then fzf --preview 'command -v bat >/dev/null && bat --color=always --style=numbers {} || cat {}' --bind='ctrl-p:execute-silent(echo -n {} | (command -v pbcopy >/dev/null && pbcopy || xclip -selection clipboard 2>/dev/null || xsel --clipboard 2>/dev/null))+abort' --bind='ctrl-o:execute(command -v nvim >/dev/null && nvim {} || vim {})'; else echo 'fzf not installed. Run: brew install fzf'; read; fi"
 bind m display-popup -E -w 80% -h 80% "command -v htop >/dev/null && htop || top"
 bind \\\\ display-popup -E -w 80% -h 80% "$SHELL"
 
@@ -729,6 +879,60 @@ function printBanner(): void {
   );
 }
 
+// ─── Uninstall ─────────────────────────────────────────────
+async function uninstall(): Promise<void> {
+  const os = detectOS();
+
+  // 1. Uninstall neovim plugins & config
+  const nvimConfigDir = join(HOME, ".config/nvim");
+  const nvimDataDir = join(HOME, ".local/share/nvim");
+  const nvimStateDir = join(HOME, ".local/state/nvim");
+  const nvimCacheDir = join(HOME, ".cache/nvim");
+
+  const nvimDirs = [
+    { path: nvimConfigDir, label: "Neovim config (~/.config/nvim)" },
+    { path: nvimDataDir, label: "Neovim data & plugins (~/.local/share/nvim)" },
+    { path: nvimStateDir, label: "Neovim state (~/.local/state/nvim)" },
+    { path: nvimCacheDir, label: "Neovim cache (~/.cache/nvim)" },
+  ];
+
+  for (const { path, label } of nvimDirs) {
+    if (existsSync(path)) {
+      const shouldRemove = await askYesNo(`Remove ${label}?`);
+      if (shouldRemove) {
+        rmSync(path, { recursive: true, force: true });
+        success(`Removed ${path}`);
+      }
+    }
+  }
+
+  // 2. Uninstall neovim binary
+  if (commandExists("nvim")) {
+    const shouldUninstall = await askYesNo("Uninstall neovim?");
+    if (shouldUninstall) {
+      if (os === "macos" && commandExists("brew")) {
+        execLive("brew uninstall neovim");
+        success("Neovim uninstalled via Homebrew");
+      } else if (commandExists("apt-get")) {
+        execLive("sudo apt-get remove -y neovim");
+        success("Neovim uninstalled via apt");
+      } else if (commandExists("yum")) {
+        execLive("sudo yum remove -y neovim");
+        success("Neovim uninstalled via yum");
+      } else if (commandExists("pacman")) {
+        execLive("sudo pacman -Rns --noconfirm neovim");
+        success("Neovim uninstalled via pacman");
+      } else {
+        warn("Could not determine package manager. Please uninstall neovim manually.");
+      }
+    }
+  } else {
+    info("Neovim is not installed, skipping");
+  }
+
+  success("Uninstall complete");
+}
+
 // ─── Main ──────────────────────────────────────────────────
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -737,6 +941,13 @@ async function main(): Promise<void> {
   if (args.includes("--restore") || args.includes("restore")) {
     printBanner();
     await restoreConfig();
+    return;
+  }
+
+  // Sub-command: uninstall
+  if (args.includes("--uninstall") || args.includes("uninstall")) {
+    printBanner();
+    await uninstall();
     return;
   }
 
@@ -754,6 +965,7 @@ async function main(): Promise<void> {
 
   installTPM();
   await checkOptionalDeps(os);
+  await setupNeovim();
   backupConfig();
   writeConfig();
   writeTruncateScript();
