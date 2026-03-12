@@ -395,7 +395,9 @@ bind A new-window -n "ai" \\; split-window -h -p 40 \\; select-pane -t 1
 bind C new-window -n "claude" -c "#{pane_current_path}"
 bind G new-window -n "gpt" -c "#{pane_current_path}"
 
-# ── Pane naming ─────────────────────────────────────────────
+# ── Window/Pane naming ─────────────────────────────────────
+# Prefix + , → rename window and disable automatic-rename to keep it
+bind , command-prompt -p "Window name:" "rename-window '%%' \\; setw automatic-rename off"
 bind P command-prompt -p "Pane name:" "select-pane -T '%%'"
 
 # ── tmux-fzf config ─────────────────────────────────────────
@@ -526,17 +528,18 @@ function writeSessionScript(): void {
 # Usage: tai [--windows win1,win2,...] [--session NAME]
 #
 # Options:
-#   --windows   Comma-separated list of windows to create (default: main)
-#               Available: main, claude, gpt, monitor, or any custom name
-#   --session   Session name (default: ai-workspace)
+#   --windows   Comma-separated list of windows to create
+#               (default: current directory name)
+#   --session   Session name (default: current directory name)
 #
 # Examples:
-#   tai                          # just "main" window
+#   tai                          # 1 window, named after current dir
 #   tai --windows main,claude    # main + claude
 #   tai --windows main,claude,gpt,monitor  # all windows
 
-SESSION="ai-workspace"
-WINDOWS="main"
+DIR_NAME="\$(basename "\$(pwd)")"
+SESSION="\$DIR_NAME"
+WINDOWS="\$DIR_NAME"
 
 while [[ \$# -gt 0 ]]; do
   case "\$1" in
@@ -665,7 +668,7 @@ ${cyan("━━━━━━━━━━━━━━━━━━━━━━━━
   Prefix key : ${bold("Ctrl-a")}
 
   ${bold("Sessions")}
-    tai                launch AI workspace (1 window)
+    tai                launch session named after current dir
     tai --windows main,claude,gpt,monitor
                      launch with specified windows
     Prefix + d       detach from session

@@ -48,7 +48,7 @@ npx tmux-ai
 npm i -g tmux-ai
 tmux-ai
 
-# Launch AI workspace (default: only "main" window)
+# Launch AI workspace (session & window named after current directory)
 tai
 
 # Launch with specific windows
@@ -58,11 +58,10 @@ tai --windows main,claude,gpt,monitor
 tai --session my-project --windows main,claude
 ```
 
-`tai` creates a pre-configured workspace for you. Available windows:
+`tai` creates a pre-configured workspace for you. By default, the session and window are named after the current directory. Available windows:
 
 | Window | Description |
 |--------|-------------|
-| `main` | Daily shell (default) |
 | `claude` | For Claude CLI |
 | `gpt` | For GPT / Gemini |
 | `monitor` | htop + logs (split pane) |
@@ -71,11 +70,11 @@ tai --session my-project --windows main,claude
 Example with all windows:
 
 ```
-ai-workspace
-├── main      ← daily shell
-├── claude    ← for Claude CLI
-├── gpt       ← for GPT / Gemini
-└── monitor   ← htop + logs
+my-project           ← session named after current dir
+├── my-project   ← default window
+├── claude       ← for Claude CLI
+├── gpt          ← for GPT / Gemini
+└── monitor      ← htop + logs
 ```
 
 Now try these operations:
@@ -291,7 +290,7 @@ Don't worry about breaking existing config—if you have an existing `.tmux.conf
 | `Prefix + c` | New window |
 | `Prefix + 1~9` | Jump to window N |
 | `Prefix + Tab` | Next window |
-| `Prefix + ,` | Rename window |
+| `Prefix + ,` | Rename window (auto-disables auto-rename) |
 | `Prefix + &` | Close window |
 | `Prefix + F` | Fuzzy search jump |
 

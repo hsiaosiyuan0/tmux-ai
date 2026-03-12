@@ -46,7 +46,7 @@ npx tmux-ai
 npm i -g tmux-ai
 tmux-ai
 
-# 启动 AI 工作区（默认只创建 main 窗口）
+# 启动 AI 工作区（session 和窗口以当前目录命名）
 tai
 
 # 指定要创建的窗口
@@ -56,11 +56,10 @@ tai --windows main,claude,gpt,monitor
 tai --session my-project --windows main,claude
 ```
 
-`tai` 会帮你创建一个预设好的工作区。可用窗口：
+`tai` 会帮你创建一个预设好的工作区。默认 session 和窗口以当前目录名命名。可用窗口：
 
 | 窗口 | 说明 |
 |------|------|
-| `main` | 日常 shell（默认） |
 | `claude` | 放 Claude CLI |
 | `gpt` | 放 GPT / Gemini |
 | `monitor` | htop + 日志（分屏） |
@@ -69,11 +68,11 @@ tai --session my-project --windows main,claude
 指定全部窗口的效果：
 
 ```
-ai-workspace
-├── main      ← 日常 shell
-├── claude    ← 放 Claude CLI
-├── gpt       ← 放 GPT / Gemini
-└── monitor   ← htop + 日志
+my-project              ← session 以当前目录命名
+├── my-project   ← 默认窗口
+├── claude       ← 放 Claude CLI
+├── gpt          ← 放 GPT / Gemini
+└── monitor      ← htop + 日志
 ```
 
 现在试试这几个操作：
@@ -289,7 +288,7 @@ Prefix + Ctrl-r   → 恢复布局
 | `Prefix + c` | 新建窗口 |
 | `Prefix + 1~9` | 跳到第 N 个窗口 |
 | `Prefix + Tab` | 下一个窗口 |
-| `Prefix + ,` | 重命名窗口 |
+| `Prefix + ,` | 重命名窗口（自动关闭自动重命名） |
 | `Prefix + &` | 关闭窗口 |
 | `Prefix + F` | 模糊搜索跳转 |
 
