@@ -4,7 +4,7 @@
   "description": "Auto-configure tmux for managing multiple AI CLIs (Claude, GPT, Aider, etc.)",
   "type": "module",
   "bin": {
-    "tmux-ai": "./dist/cli.js"
+    "tmux-ai": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
@@ -25,7 +25,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hsiaosiyuan0/tmux-ai"
+    "url": "git+https://github.com/hsiaosiyuan0/tmux-ai.git"
   },
   "files": [
     "dist"
