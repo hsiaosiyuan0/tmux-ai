@@ -1,6 +1,6 @@
 {
   "name": "tmux-ai",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Auto-configure tmux for managing multiple AI CLIs (Claude, GPT, Aider, etc.)",
   "type": "module",
   "bin": {
