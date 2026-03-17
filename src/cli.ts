@@ -75,6 +75,31 @@ function execLive(cmd: string): boolean {
   }
 }
 
+// ─── Ensure Homebrew PATH in shell RC (macOS) ──────────────
+// tmux starts non-login shells that skip .zprofile, so
+// brew-installed commands (nvim, lazygit, etc.) won't be found
+// unless brew shellenv is in .zshrc.
+function ensureBrewShellenv(os: "macos" | "linux"): void {
+  if (os !== "macos") return;
+
+  const brewBin = "/opt/homebrew/bin/brew";
+  if (!existsSync(brewBin)) return; // Intel Mac or no Homebrew
+
+  const zshrc = join(HOME, ".zshrc");
+  if (!existsSync(zshrc)) return;
+
+  const content = readFileSync(zshrc, "utf-8");
+  if (content.includes("brew shellenv")) {
+    success("Homebrew shellenv already configured in .zshrc");
+    return;
+  }
+
+  // Prepend to .zshrc so it's available before everything else
+  const brewLine = `# Added by tmux-ai — ensures Homebrew PATH in tmux sessions\neval "$(/opt/homebrew/bin/brew shellenv)"\n\n`;
+  writeFileSync(zshrc, brewLine + content, "utf-8");
+  success("Added Homebrew shellenv to .zshrc (fixes PATH in tmux)");
+}
+
 // ─── Detect OS ─────────────────────────────────────────────
 function detectOS(): "macos" | "linux" {
   const os = platform();
@@ -495,6 +520,13 @@ set -g status-interval 5
 set -g focus-events on
 set -sg escape-time 0          # No delay for ESC (important for Vim/AI CLIs)
 set -g mouse on                # Mouse support
+
+# ── Extended keys (CSI u encoding) ───────────────────────────
+# Required for AI CLIs (Claude Code, etc.) to receive Shift+Enter
+# as a distinct key from Enter. Without this, tmux intercepts the
+# CSI u sequence and converts it to a plain Enter.
+set -s extended-keys on
+set -as terminal-features 'xterm*:extkeys'
 
 # ── Index windows/panes from 1 ──────────────────────────────
 set -g base-index 1
@@ -955,6 +987,8 @@ async function main(): Promise<void> {
 
   const os = detectOS();
   info(`Detected OS: ${os}`);
+
+  ensureBrewShellenv(os);
 
   let hasPopup = checkTmuxVersion();
   installTmux(os);
