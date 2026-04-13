@@ -1,0 +1,37 @@
+src/cli.ts
+  6734ec85b722c1c1 509,511-512,528,558-561,855,870
+  089d2a50d3841e1e 529-530
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "966cc6f2fd101cc5104a9a9188d0b99107188ea2",
+  "prompts": {
+    "089d2a50d3841e1e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "179e3ef8-21c1-493d-bfd5-21e4afabec14",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "hsiaosiyuan0",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 1,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    },
+    "6734ec85b722c1c1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4f38f136-c181-46f5-9ead-5ff869bdde08",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "hsiaosiyuan0",
+      "messages": [],
+      "total_additions": 16,
+      "total_deletions": 11,
+      "accepted_lines": 10,
+      "overriden_lines": 0
+    }
+  }
+}
