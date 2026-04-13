@@ -1,0 +1,23 @@
+package.json
+  6734ec85b722c1c1 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "beffae4b4c55398d0537abd1f1c392f4e1cf3b74",
+  "prompts": {
+    "6734ec85b722c1c1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4f38f136-c181-46f5-9ead-5ff869bdde08",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "hsiaosiyuan0",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  }
+}
